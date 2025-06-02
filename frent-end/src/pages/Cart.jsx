@@ -1,40 +1,14 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TrashIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-hot-toast';
+import { useCart } from '../context/CartContext';
 
 const Cart = () => {
-  // Mock cart data for demonstration
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Gaming PC Pro',
-      price: 1299.99,
-      image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: 'RTX 4080 Graphics Card',
-      price: 1199.99,
-      image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      quantity: 1,
-    },
-  ]);
-
-  const updateQuantity = (id, newQuantity) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  const removeItem = (id) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
+  const navigate = useNavigate();
+  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
 
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const shipping = subtotal > 100 ? 0 : 15;
+  const shipping = subtotal > 1000 ? 0 : 15;
   const tax = subtotal * 0.1; // 10% tax
   const total = subtotal + shipping + tax;
 
@@ -51,14 +25,25 @@ const Cart = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">Shopping Cart</h1>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">Shopping Cart</h1>
+        <button 
+          onClick={() => {
+            clearCart();
+            toast.success('Cart cleared');
+          }}
+          className="text-red-500 hover:text-red-700 text-sm font-medium"
+        >
+          Clear Cart
+        </button>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
           {cartItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center">
+            <div key={item._id} className="bg-white rounded-lg shadow-sm p-4 flex items-center">
               <img
                 src={item.image}
                 alt={item.name}
@@ -66,25 +51,35 @@ const Cart = () => {
               />
               
               <div className="flex-1 ml-4">
-                <h3 className="font-medium">{item.name}</h3>
-                <p className="text-gray-600">${item.price}</p>
+                <h3 className="font-medium hover:text-primary cursor-pointer" onClick={() => navigate(`/products/${item._id}`)}>
+                  {item.name}
+                </h3>
+                <p className="text-gray-600">${item.price.toFixed(2)}</p>
                 
                 <div className="flex items-center mt-2">
-                  <select
-                    value={item.quantity}
-                    onChange={(e) => updateQuantity(item.id, Number(e.target.value))}
-                    className="input-field max-w-[100px]"
-                  >
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <option key={num} value={num}>
-                        {num}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center border rounded-md">
+                    <button
+                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      -
+                    </button>
+                    <span className="px-3 py-1">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      +
+                    </button>
+                  </div>
                   
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => {
+                      removeFromCart(item._id);
+                      toast.success('Item removed from cart');
+                    }}
                     className="ml-4 text-red-500 hover:text-red-700"
+                    title="Remove item"
                   >
                     <TrashIcon className="h-5 w-5" />
                   </button>
@@ -100,7 +95,7 @@ const Cart = () => {
 
         {/* Order Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
             <h2 className="text-xl font-bold mb-4">Order Summary</h2>
             
             <div className="space-y-2 mb-4">
@@ -113,25 +108,34 @@ const Cart = () => {
                 <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Tax</span>
+                <span className="text-gray-600">Tax (10%)</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
             </div>
             
             <div className="border-t pt-4 mb-6">
-              <div className="flex justify-between font-bold">
+              <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
             </div>
             
-            <button className="btn-primary w-full mb-4">
+            <button 
+              className="btn-primary w-full mb-4"
+              onClick={() => navigate('/checkout')}
+            >
               Proceed to Checkout
             </button>
             
             <Link to="/products" className="btn-secondary w-full block text-center">
               Continue Shopping
             </Link>
+
+            {shipping > 0 && (
+              <p className="text-sm text-gray-500 mt-4 text-center">
+                Add ${(1000 - subtotal).toFixed(2)} more to get free shipping!
+              </p>
+            )}
           </div>
         </div>
       </div>

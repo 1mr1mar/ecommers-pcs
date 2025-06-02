@@ -1,49 +1,51 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { StarIcon } from '@heroicons/react/24/solid';
-import { ShoppingCartIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, ArrowLeftIcon, HeartIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { useCart } from '../context/CartContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
-
-  // Mock data for demonstration
-  const mockProduct = {
-    id: 1,
-    name: 'Gaming PC Pro',
-    category: 'prebuilt',
-    price: 1299.99,
-    rating: 4.5,
-    image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    description: 'High-performance gaming PC with RTX 3080',
-    specifications: {
-      processor: 'Intel Core i9-13900K',
-      graphics: 'NVIDIA RTX 4080 16GB',
-      memory: '32GB DDR5 RAM',
-      storage: '2TB NVMe SSD',
-      powerSupply: '850W Gold Certified',
-      cooling: 'Liquid Cooling System',
-    },
-    features: [
-      'Ready for 4K Gaming',
-      'Ray Tracing Enabled',
-      'RGB Lighting',
-      'Wi-Fi 6E',
-      'Bluetooth 5.2',
-      'Windows 11 Pro',
-    ],
-  };
+  const [isWishlist, setIsWishlist] = useState(false);
 
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setProduct(mockProduct);
-      setLoading(false);
-    }, 500);
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+        setProduct(response.data);
+      } catch (err) {
+        setError('Failed to fetch product details. Please try again later.');
+        console.error('Error fetching product:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
   }, [id]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    
+    addToCart(product, quantity);
+    toast.success('Added to cart!');
+    setQuantity(1);
+  };
+
+  const handleWishlist = () => {
+    setIsWishlist(!isWishlist);
+    // Wishlist functionality will be implemented later
+  };
 
   if (loading) {
     return (
@@ -53,30 +55,74 @@ const ProductDetail = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={() => navigate(-1)}
+          className="mt-4 btn-primary"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-800">Product not found</h2>
+        <button 
+          onClick={() => navigate(-1)}
+          className="mt-4 btn-primary"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Back Button */}
+      <button 
+        onClick={() => navigate(-1)}
+        className="flex items-center text-gray-600 hover:text-primary mb-6"
+      >
+        <ArrowLeftIcon className="h-5 w-5 mr-2" />
+        Back to Products
+      </button>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Product Image */}
-        <div className="bg-white rounded-lg overflow-hidden">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-[500px] object-cover"
-          />
+        <div className="bg-white rounded-lg overflow-hidden shadow-lg">
+          <div className="relative">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-[500px] object-cover"
+            />
+            <button
+              onClick={handleWishlist}
+              className={`absolute top-4 right-4 p-2 rounded-full ${
+                isWishlist ? 'bg-red-500 text-white' : 'bg-white text-gray-600'
+              } hover:bg-red-500 hover:text-white transition-colors duration-300`}
+            >
+              <HeartIcon className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Product Info */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+              <span className="bg-primary text-white px-3 py-1 rounded-full text-sm">
+                {product.category}
+              </span>
+            </div>
             <div className="flex items-center mt-2">
               <StarIcon className="h-5 w-5 text-yellow-400" />
               <span className="ml-1 text-gray-600">{product.rating} Rating</span>
@@ -92,50 +138,70 @@ const ProductDetail = () => {
           {/* Quantity Selector */}
           <div className="flex items-center space-x-4">
             <label htmlFor="quantity" className="text-gray-700">Quantity:</label>
-            <select
-              id="quantity"
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="input-field max-w-[100px]"
-            >
-              {[1, 2, 3, 4, 5].map((num) => (
-                <option key={num} value={num}>
-                  {num}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center border rounded-md">
+              <button
+                onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                disabled={quantity <= 1}
+              >
+                -
+              </button>
+              <span className="px-4 py-1 border-x">{quantity}</span>
+              <button
+                onClick={() => setQuantity(prev => Math.min(5, prev + 1))}
+                className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                disabled={quantity >= 5}
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Add to Cart Button */}
-          <button className="btn-primary w-full flex items-center justify-center space-x-2">
+          <button 
+            onClick={handleAddToCart}
+            className="btn-primary w-full flex items-center justify-center space-x-2"
+          >
             <ShoppingCartIcon className="h-5 w-5" />
             <span>Add to Cart</span>
           </button>
 
-          {/* Specifications */}
+          {/* Product Details */}
           <div className="border-t pt-6">
-            <h2 className="text-xl font-bold mb-4">Specifications</h2>
+            <h2 className="text-xl font-bold mb-4">Product Details</h2>
             <div className="grid grid-cols-1 gap-4">
-              {Object.entries(product.specifications).map(([key, value]) => (
-                <div key={key} className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <span className="font-medium">{value}</span>
-                </div>
-              ))}
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">Category</span>
+                <span className="font-medium capitalize">{product.category}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">Rating</span>
+                <span className="font-medium">{product.rating} / 5.0</span>
+              </div>
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">Price</span>
+                <span className="font-medium">${product.price}</span>
+              </div>
             </div>
           </div>
 
-          {/* Features */}
+          {/* Shipping Information */}
           <div className="border-t pt-6">
-            <h2 className="text-xl font-bold mb-4">Features</h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {product.features.map((feature, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-primary rounded-full"></div>
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
+            <h2 className="text-xl font-bold mb-4">Shipping Information</h2>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                <span>Free shipping on orders over $1000</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                <span>Estimated delivery: 2-4 business days</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                <span>30-day return policy</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
