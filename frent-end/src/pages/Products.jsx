@@ -51,8 +51,8 @@ const Products = () => {
         setLoading(true);
         setError(null);
         const url = category 
-          ? `http://localhost:5000/api/products?category=${category}`
-          : 'http://localhost:5000/api/products';
+          ? `https://tortoiseshell-funny-forsythia.glitch.me/api/products?category=${category}`
+          : 'https://tortoiseshell-funny-forsythia.glitch.me/api/products';
         const response = await axios.get(url);
         setProducts(response.data);
         

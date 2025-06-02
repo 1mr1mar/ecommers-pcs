@@ -30,7 +30,8 @@ const Home = () => {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products?featured=true&limit=4');
+      setLoading(prev => ({ ...prev, featured: true }));
+      const response = await fetch('https://tortoiseshell-funny-forsythia.glitch.me/api/products?featured=true&limit=4');
       const data = await response.json();
       setFeaturedProducts(data);
     } catch (error) {
@@ -43,7 +44,8 @@ const Home = () => {
 
   const fetchNewArrivals = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products?sort=newest&limit=4');
+      setLoading(prev => ({ ...prev, newArrivals: true }));
+      const response = await fetch('https://tortoiseshell-funny-forsythia.glitch.me/api/products?sort=newest&limit=4');
       const data = await response.json();
       setNewArrivals(data);
     } catch (error) {

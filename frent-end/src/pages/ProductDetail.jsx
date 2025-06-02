@@ -21,7 +21,7 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const response = await axios.get(`https://tortoiseshell-funny-forsythia.glitch.me/api/products/${id}`);
         setProduct(response.data);
       } catch (err) {
         setError('Failed to fetch product details. Please try again later.');
